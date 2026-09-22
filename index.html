@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iFUTURE 2026 // Interactive AI Lobby</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-black: #08080a;
+      --card-black: rgba(18, 18, 24, 0.85);
+      --card-border: rgba(255, 23, 68, 0.35);
+      --red-primary: #ff1744;
+      --red-glow: rgba(255, 23, 68, 0.6);
+      --red-dark: #8b0000;
+      --text-white: #ffffff;
+      --text-muted: #a0a5b5;
+      --grid-line: rgba(255, 255, 255, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-black);
+      color: var(--text-white);
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Background Canvas and Matrix Scanlines */
+    #neural-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .scanline {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 0, 0, 0.01), rgba(255, 0, 0, 0.03));
+      background-size: 100% 3px, 6px 100%;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* Container */
+    .lobby-wrapper {
+      position: relative;
+      z-index: 2;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px 20px 60px 20px;
+    }
+
+    /* Top HUD Bar */
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-tag {
+      background: var(--red-primary);
+      color: #000;
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 4px 8px;
+      border-radius: 2px;
+      letter-spacing: 2px;
+    }
+
+    .sys-time {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--red-primary);
+      text-shadow: 0 0 8px var(--red-glow);
+    }
+
+    /* Hero Banner */
+    .hero-panel {
+      background: var(--card-black);
+      border: 1px solid var(--card-border);
+      border-left: 4px solid var(--red-primary);
+      padding: 28px;
+      border-radius: 4px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 25px rgba(255, 23, 68, 0.12);
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .hero-info h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .hero-info h1 span {
+      color: var(--red-primary);
+      text-shadow: 0 0 12px var(--red-glow);
+    }
+
+    .hero-info p {
+      font-size: 16px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .meta-pills {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 6px 12px;
+      border-radius: 2px;
+    }
+
+    .pill.red {
+      border-color: var(--red-primary);
+      color: var(--red-primary);
+    }
+
+    /* Countdown Matrix */
+    .countdown-box {
+      display: flex;
+      gap: 12px;
+    }
+
+    .cd-unit {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--card-border);
+      padding: 10px 14px;
+      border-radius: 4px;
+      text-align: center;
+      min-width: 65px;
+    }
+
+    .cd-val {
+      font-family: 'Orbitron', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .cd-label {
+      font-size: 10px;
+      color: var(--red-primary);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      padding: 12px 18px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+      border-radius: 2px;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 23, 68, 0.15);
+      border-color: var(--red-primary);
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: var(--red-primary);
+      border-color: var(--red-primary);
+      color: #000;
+      font-weight: 900;
+      box-shadow: 0 0 15px var(--red-glow);
+    }
+
+    /* Content Sections */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.35s ease forwards;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Stats HUD Row */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--card-black);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 20px;
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--red-primary), transparent);
+    }
+
+    .stat-card .num {
+      font-family: 'Orbitron', monospace;
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .stat-card .label {
+      color: var(--red-primary);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* 30-Minute Challenge Simulator */
+    .challenge-container {
+      background: var(--card-black);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      padding: 28px;
+    }
+
+    .challenge-stages {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .stage-item {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 18px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .stage-item:hover, .stage-item.selected {
+      border-color: var(--red-primary);
+      background: rgba(255, 23, 68, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .stage-badge {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      color: var(--red-primary);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .stage-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .stage-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Interactive Timer for Table */
+    .timer-console {
+      background: #000;
+      border: 1px solid var(--red-primary);
+      padding: 24px;
+      border-radius: 4px;
+      text-align: center;
+      margin-top: 24px;
+      box-shadow: inset 0 0 20px rgba(255, 23, 68, 0.2);
+    }
+
+    .timer-display {
+      font-family: 'Orbitron', monospace;
+      font-size: 48px;
+      font-weight: 900;
+      color: var(--red-primary);
+      text-shadow: 0 0 15px var(--red-glow);
+      margin-bottom: 14px;
+    }
+
+    .btn-action {
+      background: transparent;
+      border: 1px solid var(--red-primary);
+      color: #fff;
+      padding: 10px 24px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: 0.2s ease;
+      margin: 0 6px;
+      border-radius: 2px;
+    }
+
+    .btn-action:hover {
+      background: var(--red-primary);
+      color: #000;
+      box-shadow: 0 0 12px var(--red-glow);
+    }
+
+    /* Themes Grid */
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .theme-card {
+      background: var(--card-black);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      padding: 20px;
+      transition: 0.2s ease;
+      cursor: pointer;
+    }
+
+    .theme-card:hover {
+      border-color: var(--red-primary);
+      box-shadow: 0 0 16px rgba(255, 23, 68, 0.2);
+      transform: translateY(-3px);
+    }
+
+    .theme-no {
+      font-family: 'Space Mono', monospace;
+      color: var(--red-primary);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .theme-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .theme-prompt {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+      padding-top: 10px;
+    }
+
+    /* Table Matrix Locator */
+    .table-finder-box {
+      background: var(--card-black);
+      border: 1px solid var(--card-border);
+      padding: 24px;
+      border-radius: 4px;
+      margin-bottom: 24px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .sci-input {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 12px 16px;
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      flex: 1;
+      min-width: 200px;
+      border-radius: 2px;
+    }
+
+    .sci-input:focus {
+      outline: none;
+      border-color: var(--red-primary);
+      box-shadow: 0 0 8px var(--red-glow);
+    }
+
+    /* Tentative Agenda Timeline */
+    .timeline {
+      border-left: 2px solid var(--red-primary);
+      margin-left: 16px;
+      padding-left: 24px;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -31px;
+      top: 4px;
+      width: 12px;
+      height: 12px;
+      background: #000;
+      border: 2px solid var(--red-primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--red-glow);
+    }
+
+    .t-time {
+      font-family: 'Space Mono', monospace;
+      color: var(--red-primary);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .t-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 4px 0;
+    }
+
+    .t-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* Modal / HUD Overlay */
+    .hud-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .hud-modal.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--card-black);
+      border: 1px solid var(--red-primary);
+      box-shadow: 0 0 35px var(--red-glow);
+      max-width: 520px;
+      width: 100%;
+      padding: 28px;
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-family: 'Orbitron', monospace;
+      color: var(--red-primary);
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="neural-canvas"></canvas>
+  <div class="scanline"></div>
+
+  <div class="lobby-wrapper">
+
+    <!-- Top HUD -->
+    <header class="hud-header">
+      <div class="brand-section">
+        <span class="brand-tag">MSU // AI NEXUS</span>
+        <span style="font-family: 'Orbitron', monospace; font-size: 14px; letter-spacing: 1px;">iFUTURE LOBBY v2.6</span>
+      </div>
+      <div class="sys-time" id="sys-clock">SYSTEM ONLINE // 00:00:00</div>
+    </header>
+
+    <!-- Hero / Core Matrix -->
+    <section class="hero-panel">
+      <div class="hero-info">
+        <h1>iFUTURE <span>DINNER 2026</span></h1>
+        <p>Mix. Mingle. Make Memories // Empowering Tomorrow's Leaders</p>
+        <div class="meta-pills">
+          <span class="pill red">12 OCT 2026</span>
+          <span class="pill">MSU CHANCELLOR HALL</span>
+          <span class="pill">1,200 STUDENT LEADERS</span>
+          <span class="pill">240 COCKTAIL TABLES</span>
+        </div>
+      </div>
+      
+      <!-- Live Countdown -->
+      <div class="countdown-box">
+        <div class="cd-unit">
+          <div class="cd-val" id="cd-days">--</div>
+          <div class="cd-label">Days</div>
+        </div>
+        <div class="cd-unit">
+          <div class="cd-val" id="cd-hours">--</div>
+          <div class="cd-label">Hours</div>
+        </div>
+        <div class="cd-unit">
+          <div class="cd-val" id="cd-mins">--</div>
+          <div class="cd-label">Mins</div>
+        </div>
+        <div class="cd-unit">
+          <div class="cd-val" id="cd-secs">--</div>
+          <div class="cd-label">Secs</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Bar -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('overview')">[01] MISSION OVERVIEW</button>
+      <button class="tab-btn" onclick="switchTab('challenge')">[02] 30-MIN CHALLENGE</button>
+      <button class="tab-btn" onclick="switchTab('themes')">[03] 14 AI & FUTURE THEMES</button>
+      <button class="tab-btn" onclick="switchTab('schedule')">[04] ITINERARY / TIMELINE</button>
+      <button class="tab-btn" onclick="switchTab('locator')">[05] TABLE LOCATOR & ICEBREAKER</button>
+    </nav>
+
+    <!-- TAB 1: OVERVIEW -->
+    <section id="tab-overview" class="tab-content active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="num">1,200</div>
+          <div class="label">Young Visionaries</div>
+        </div>
+        <div class="stat-card">
+          <div class="num">240</div>
+          <div class="label">Collaborative Nodes</div>
+        </div>
+        <div class="stat-card">
+          <div class="num">14</div>
+          <div class="label">AI & Future Focuses</div>
+        </div>
+        <div class="stat-card">
+          <div class="num">RM 114K</div>
+          <div class="label">Total Event Impact</div>
+        </div>
+      </div>
+
+      <div class="challenge-container">
+        <h2 style="font-family: 'Orbitron'; font-size: 20px; margin-bottom: 12px; color: var(--red-primary);">// THE EVENT CONCEPT MATRIX</h2>
+        <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 20px;">
+          The iFUTURE Networking Dinner gathers premier student leaders from private and public higher education institutions across Malaysia. This interactive space lets participants break the ice, collaborate across campuses, and draft pioneering solutions to future challenges.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+          <div style="background: rgba(255,255,255,0.03); padding: 14px; border-left: 2px solid var(--red-primary);">
+            <div style="color: #fff; font-weight:700;">EAT</div>
+            <div style="color: var(--text-muted); font-size: 13px;">Free-flow international buffet</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); padding: 14px; border-left: 2px solid var(--red-primary);">
+            <div style="color: #fff; font-weight:700;">MEET</div>
+            <div style="color: var(--text-muted); font-size: 13px;">5 students per cocktail table</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); padding: 14px; border-left: 2px solid var(--red-primary);">
+            <div style="color: #fff; font-weight:700;">EXCHANGE</div>
+            <div style="color: var(--text-muted); font-size: 13px;">Cross-campus experience share</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); padding: 14px; border-left: 2px solid var(--red-primary);">
+            <div style="color: #fff; font-weight:700;">CREATE</div>
+            <div style="color: var(--text-muted); font-size: 13px;">Co-design actionable solutions</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); padding: 14px; border-left: 2px solid var(--red-primary);">
+            <div style="color: #fff; font-weight:700;">CELEBRATE</div>
+            <div style="color: var(--text-muted); font-size: 13px;">Artist & student performances</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: 30-MINUTE LEADERSHIP CHALLENGE -->
+    <section id="tab-challenge" class="tab-content">
+      <div class="challenge-container">
+        <h2 style="font-family: 'Orbitron'; font-size: 20px; color: var(--red-primary);">// 30-MINUTE LEADERSHIP EXCHANGE</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Click each stage to inspect table instructions or trigger the live table timer.</p>
+
+        <div class="challenge-stages">
+          <div class="stage-item selected" onclick="selectStage(0)">
+            <span class="stage-badge">PHASE 1 // 5 MINS</span>
+            <div class="stage-title">BREAK THE ICE!</div>
+            <div class="stage-desc">Say hello! Share your name, university, and one fun fact about yourself.</div>
+          </div>
+          <div class="stage-item" onclick="selectStage(1)">
+            <span class="stage-badge">PHASE 2 // 10 MINS</span>
+            <div class="stage-title">LET'S TALK!</div>
+            <div class="stage-desc">Share campus experiences and exchange ideas on your table's assigned theme.</div>
+          </div>
+          <div class="stage-item" onclick="selectStage(2)">
+            <span class="stage-badge">PHASE 3 // 10 MINS</span>
+            <div class="stage-title">MAKE IT HAPPEN!</div>
+            <div class="stage-desc">Brainstorm a creative solution and formulate one concrete collaborative action.</div>
+          </div>
+          <div class="stage-item" onclick="selectStage(3)">
+            <span class="stage-badge">PHASE 4 // 5 MINS</span>
+            <div class="stage-title">PITCH IT!</div>
+            <div class="stage-desc">Finalize your big idea and submit it via QR code for evaluation.</div>
+          </div>
+        </div>
+
+        <!-- Evaluation Rubric HUD -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 4px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 12px;">
+          <div><strong style="color: var(--red-primary); font-family: 'Orbitron';">IMPACT:</strong> 40%</div>
+          <div><strong style="color: var(--red-primary); font-family: 'Orbitron';">INNOVATION:</strong> 30%</div>
+          <div><strong style="color: var(--red-primary); font-family: 'Orbitron';">PRACTICALITY:</strong> 30%</div>
+          <div><strong style="color: #fff; font-family: 'Orbitron';">TOTAL:</strong> 100%</div>
+        </div>
+
+        <!-- Interactive Table Stopwatch -->
+        <div class="timer-console">
+          <div style="font-family: 'Space Mono'; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">ACTIVE EXCHANGE STOPWATCH</div>
+          <div class="timer-display" id="exchange-timer">30:00</div>
+          <div>
+            <button class="btn-action" onclick="startTimer()">START SYNC</button>
+            <button class="btn-action" onclick="pauseTimer()">PAUSE</button>
+            <button class="btn-action" onclick="resetTimer()">RESET</button>
+            <button class="btn-action" onclick="openSubmission()">SUBMIT PITCH (QR)</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: 14 AI & FUTURE THEMES -->
+    <section id="tab-themes" class="tab-content">
+      <div style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h2 style="font-family: 'Orbitron'; font-size: 20px; color: var(--red-primary);">// 14 DIALOGUE ACCELERATORS</h2>
+        <span style="font-family: 'Space Mono'; font-size: 13px; color: var(--text-muted);">Filter or click any card for prompt cues</span>
+      </div>
+
+      <div class="themes-grid" id="themes-container">
+        <!-- Rendered via JavaScript -->
+      </div>
+    </section>
+
+    <!-- TAB 4: SCHEDULE / TIMELINE -->
+    <section id="tab-schedule" class="tab-content">
+      <div class="challenge-container">
+        <h2 style="font-family: 'Orbitron'; font-size: 20px; color: var(--red-primary); margin-bottom: 24px;">// MONDAY, 12 OCTOBER 2026 // SEQUENCE</h2>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="t-time">7:13 PM</div>
+            <div class="t-title">Maghrib Prayer</div>
+            <div class="t-desc">Islamic Cultural Centre (ICC)</div>
+          </div>
+          <div class="timeline-item">
+            <div class="t-time">7:30 - 7:50 PM</div>
+            <div class="t-title">Registration & Colour Code Allocation</div>
+            <div class="t-desc">Participants receive colour/table credentials and proceed to cocktail stations.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="t-time">7:50 - 8:00 PM</div>
+            <div class="t-title">Meet Your Group</div>
+            <div class="t-desc">Informal greetings among student leaders across varied IPT institutions.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="t-time">8:00 - 8:30 PM</div>
+            <div class="t-title">Protocol Arrivals & Opening Addresses</div>
+            <div class="t-desc">VIP Reception, Welcoming Remarks by MSU President & Special Address by YBM.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="t-time">8:30 - 9:00 PM</div>
+            <div class="t-title">iFUTURE Challenge (30-Minute Sprint)</div>
+            <div class="t-desc">Student networking exchange, collaborative brainstorming & QR pitch uploads.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="t-time">9:00 - 9:50 PM</div>
+            <div class="t-title">Buffet Feast & Awards</div>
+            <div class="t-desc">International buffet, featured performances, Lucky Draw & Best Idea Recognition.</div>
+          </div>
+          <div class="timeline-item">
+            <div class="t-time">9:50 - 10:30 PM</div>
+            <div class="t-title">Special Artist Shows, Grand Photo & Adjourn</div>
+            <div class="t-desc">Headliner performances, official group photo session, and conclusion.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: TABLE LOCATOR & ICEBREAKER -->
+    <section id="tab-locator" class="tab-content">
+      <div class="table-finder-box">
+        <h2 style="font-family: 'Orbitron'; font-size: 20px; color: var(--red-primary);">// COCKTAIL STATION PROTOCOL</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Enter your assigned table badge (e.g., "Red 12" or "Blue 3") to retrieve station mission.</p>
+        
+        <div class="input-row">
+          <input type="text" id="station-input" class="sci-input" placeholder="Enter Table Code (e.g. Red 5, Blue 18)...">
+          <button class="btn-action" onclick="lookupTable()">QUERY MATRIX</button>
+        </div>
+
+        <div id="table-result" style="margin-top: 18px; padding: 16px; background: rgba(0,0,0,0.5); border: 1px dashed rgba(255,255,255,0.2); border-radius: 4px; display: none;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Alternative Mini-Game: Find Your Match -->
+      <div class="challenge-container">
+        <h3 style="font-family: 'Orbitron'; font-size: 18px; color: #fff; margin-bottom: 8px;">ALTERNATIVE PROTOCOL: "FIND YOUR MATCH!"</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">15-minute icebreaker challenge for 5-member cocktail clusters.</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+          <div style="background: rgba(255,23,68,0.05); border: 1px solid var(--card-border); padding: 12px; border-radius: 4px;">
+            <strong style="color: var(--red-primary);">01. Squad Intro (3 min)</strong>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">State name, university & 1 unconventional fact.</p>
+          </div>
+          <div style="background: rgba(255,23,68,0.05); border: 1px solid var(--card-border); padding: 12px; border-radius: 4px;">
+            <strong style="color: var(--red-primary);">02. Match Hunt (7 min)</strong>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Cross-match criteria on the physical game card.</p>
+          </div>
+          <div style="background: rgba(255,23,68,0.05); border: 1px solid var(--card-border); padding: 12px; border-radius: 4px;">
+            <strong style="color: var(--red-primary);">03. The Trifecta (3 min)</strong>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Isolate THREE common traits shared by all 5 members.</p>
+          </div>
+          <div style="background: rgba(255,23,68,0.05); border: 1px solid var(--card-border); padding: 12px; border-radius: 4px;">
+            <strong style="color: var(--red-primary);">04. Transmit (2 min)</strong>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Submit answers via designated table QR portal.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Interactive Submission / QR Modal -->
+  <div class="hud-modal" id="submit-modal">
+    <div class="modal-box">
+      <button class="close-modal" onclick="closeSubmission()">&times;</button>
+      <h3 style="font-family: 'Orbitron'; color: var(--red-primary); margin-bottom: 8px;">// TRANSMIT PITCH DATA</h3>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Upload your table's core proposal directly to the adjudication registry.</p>
+      
+      <!-- Interactive Mock QR HUD -->
+      <div style="text-align: center; margin: 18px 0;">
+        <div style="display: inline-block; padding: 12px; background: #fff; border: 4px solid var(--red-primary); border-radius: 4px;">
+          <svg width="150" height="150" viewBox="0 0 100 100" fill="#000">
+            <!-- Stylized Sci-Fi Matrix QR Pattern -->
+            <rect width="28" height="28" x="6" y="6"/>
+            <rect width="16" height="16" x="12" y="12" fill="#fff"/>
+            <rect width="8" height="8" x="16" y="16"/>
+            
+            <rect width="28" height="28" x="66" y="6"/>
+            <rect width="16" height="16" x="72" y="12" fill="#fff"/>
+            <rect width="8" height="8" x="76" y="16"/>
+
+            <rect width="28" height="28" x="6" y="66"/>
+            <rect width="16" height="16" x="12" y="72" fill="#fff"/>
+            <rect width="8" height="8" x="16" y="76"/>
+
+            <rect width="8" height="8" x="46" y="20"/>
+            <rect width="12" height="12" x="44" y="44"/>
+            <rect width="8" height="16" x="20" y="42"/>
+            <rect width="16" height="8" x="66" y="48"/>
+            <rect width="10" height="10" x="70" y="70"/>
+            <rect width="12" height="6" x="44" y="74"/>
+          </svg>
+        </div>
+        <div style="font-family: 'Space Mono'; font-size: 12px; color: var(--red-primary); margin-top: 10px;">SCAN VIA MOBILE CAMERA TO ACCESS GOOGLE FORM</div>
+      </div>
+
+      <div style="font-size: 12px; color: var(--text-muted); text-align: center;">
+        Eligibility: Registered 12 Oct 2026 Tables // Adjudication: 40% Impact, 30% Innovation, 30% Practicality.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* 1. Live Countdown Engine (Target: 12 Oct 2026 19:30:00 GMT+8) */
+    const eventTime = new Date('2026-10-12T19:30:00+08:00').getTime();
+
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const diff = eventTime - now;
+
+      if (diff > 0) {
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+        document.getElementById('cd-days').innerText = String(d).padStart(2, '0');
+        document.getElementById('cd-hours').innerText = String(h).padStart(2, '0');
+        document.getElementById('cd-mins').innerText = String(m).padStart(2, '0');
+        document.getElementById('cd-secs').innerText = String(s).padStart(2, '0');
+      } else {
+        document.getElementById('cd-days').innerText = "00";
+        document.getElementById('cd-hours').innerText = "00";
+        document.getElementById('cd-mins').innerText = "00";
+        document.getElementById('cd-secs').innerText = "00";
+      }
+
+      // System clock
+      const cur = new Date();
+      document.getElementById('sys-clock').innerText = 
+        `SYS TIME // ${cur.toLocaleTimeString('en-GB')} KUL`;
+    }
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
+    /* 2. Interactive Themes Dataset */
+    const themesData = [
+      { id: 1, title: "Born to Lead or Just Bossy?", prompt: "If your group could create the ultimate student leader, what kind of person would everyone want to follow?" },
+      { id: 2, title: "AI: Bestie or Enemy?", prompt: "If AI could do anything for university students, what would your group want it to do?" },
+      { id: 3, title: "Stress? We Don't Know Her!", prompt: "If your group could create the happiest campus ever, what fun activities or changes would you introduce?" },
+      { id: 4, title: "Less Talk, More Green!", prompt: "If your group had RM1,000 to make your campus greener, what fun and creative idea would you try?" },
+      { id: 5, title: "Different Vibes, One Tribe!", prompt: "If your group could organise one epic activity to bring students from different universities together, what would it be?" },
+      { id: 6, title: "Degree Got, Now What?", prompt: "If you could add three things to university life that would prepare students for the real world, what would they be?" },
+      { id: 7, small: true, title: "Small Acts, Big Impact!", prompt: "If your group had 100 volunteers for one day, what exciting activity would you organise to help others?" },
+      { id: 8, title: "Broke but Brilliant!", prompt: "Your group has RM5,000 to start a business. What crazy but brilliant student-friendly idea would you create?" },
+      { id: 9, title: "Leader or Just Famous?", prompt: "What would make your group trust someone as a leader, even if they were not popular on social media?" },
+      { id: 10, title: "Viral for the Right Reasons!", prompt: "If your group could create one viral TikTok challenge that makes a positive difference, what would it be?" },
+      { id: 11, title: "Boss Mode: ON!", prompt: "If your group could create five golden rules for student leaders, what would they be?" },
+      { id: 12, title: "The Ultimate Campus Collab!", prompt: "Five students from five universities. What exciting project, event or challenge could your group organise together?" },
+      { id: 13, title: "Dear Future Me...", prompt: "If your group could create the ultimate university bucket list, what five things should every student experience before graduating?" },
+      { id: 14, title: "One Crazy Idea, Let's Make It Happen!", prompt: "If your group could turn one fun idea from tonight into reality, what would it be and how would you make it happen together?" }
+    ];
+
+    const themesContainer = document.getElementById('themes-container');
+    themesData.forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'theme-card';
+      card.innerHTML = `
+        <div class="theme-no">TOPIC_INDEX // 0${t.id > 9 ? t.id : '0' + t.id}</div>
+        <div class="theme-title">${t.title}</div>
+        <div class="theme-prompt">"${t.prompt}"</div>
+      `;
+      card.onclick = () => {
+        alert(`TOPIC [${t.title}]\n\nDiscussion Query:\n${t.prompt}`);
+      };
+      themesContainer.appendChild(card);
+    });
+
+    /* 3. Tab Switching */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    /* 4. Stage Selection */
+    function selectStage(index) {
+      const stages = document.querySelectorAll('.stage-item');
+      stages.forEach(s => s.classList.remove('selected'));
+      stages[index].classList.add('selected');
+    }
+
+    /* 5. 30-Minute Stopwatch */
+    let timerDuration = 30 * 60;
+    let timerInterval = null;
+
+    function renderTimer() {
+      const m = Math.floor(timerDuration / 60);
+      const s = timerDuration % 60;
+      document.getElementById('exchange-timer').innerText = 
+        `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+      if (timerInterval) return;
+      timerInterval = setInterval(() => {
+        if (timerDuration > 0) {
+          timerDuration--;
+          renderTimer();
+        } else {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          alert("30 MINUTES COMPLETED // TIME TO TRANSMIT PITCH!");
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      timerDuration = 30 * 60;
+      renderTimer();
+    }
+
+    /* 6. Modal Controls */
+    function openSubmission() {
+      document.getElementById('submit-modal').classList.add('active');
+    }
+    function closeSubmission() {
+      document.getElementById('submit-modal').classList.remove('active');
+    }
+
+    /* 7. Table Station Query Engine */
+    function lookupTable() {
+      const val = document.getElementById('station-input').value.trim();
+      const res = document.getElementById('table-result');
+      if (!val) {
+        alert("Please specify a table badge (e.g., Red 5 or Blue 12)");
+        return;
+      }
+      
+      const themeIdx = (Math.abs(val.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 14);
+      const assigned = themesData[themeIdx];
+
+      res.style.display = 'block';
+      res.innerHTML = `
+        <div style="font-family:'Orbitron'; color: var(--red-primary); margin-bottom: 6px;">[STATION VERIFIED: ${val.toUpperCase()}]</div>
+        <div style="font-size: 15px; font-weight:700; color:#fff;">ASSIGNED THEME: ${assigned.title}</div>
+        <div style="color: var(--text-muted); font-size: 13px; margin: 6px 0;">Starter Query: "${assigned.prompt}"</div>
+        <div style="color: #fff; font-size: 12px; margin-top: 8px;">Capacity: 5 Student Delegates // Adjudication: Eligible for Lucky Draw & Awards</div>
+      `;
+    }
+
+    /* 8. Sci-Fi AI Neural Background Canvas */
+    const canvas = document.getElementById('neural-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let particles = [];
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.7;
+        this.vy = (Math.random() - 0.5) * 0.7;
+        this.radius = Math.random() * 2 + 1;
+        this.isRed = Math.random() > 0.8;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > width) this.vx *= -1;
+        if (this.y < 0 || this.y > height) this.vy *= -1;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.isRed ? '#ff1744' : '#ffffff';
+        ctx.shadowBlur = this.isRed ? 8 : 4;
+        ctx.shadowColor = this.isRed ? '#ff1744' : '#ffffff';
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 65; i++) {
+      particles.push(new Particle());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw connective neural lines
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            const alpha = 1 - dist / 110;
+            ctx.strokeStyle = particles[i].isRed || particles[j].isRed 
+              ? `rgba(255, 23, 68, ${alpha * 0.4})` 
+              : `rgba(255, 255, 255, ${alpha * 0.15})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
